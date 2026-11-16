@@ -12,7 +12,7 @@ are not yet packaged the way the rest of `alevin-fry` is.
 ## What the pipeline does
 
 | Step | Tool | What it does |
-|---|---|---|---|
+|---|---|---|
 | 1 | [BLAZE](https://github.com/shimlab/BLAZE) | Finds the cell barcode and UMI in each read, keeps the reads of real cells, writes them in transcript orientation with `CB_UMI#read` names |
 | 2 | minimap2 | Aligns the reads to the transcriptome, keeping up to 100 alignments per read |
 | 3 | `tagged_bam_CR_UR.py` | Moves the barcode and UMI from the read name into BAM tags (`CB`/`CR`, `UB`/`UR`) |
