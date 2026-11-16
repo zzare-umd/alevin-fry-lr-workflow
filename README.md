@@ -35,7 +35,7 @@ The result is a cells × transcripts count matrix (or cells × genes with a tran
 ## Installation
 
 ```bash
-git clone <this repository> alevin-fry-lr && cd alevin-fry-lr
+git clone git@github.com:zzare-umd/alevin-fry-lr-workflow.git && cd alevin-fry-lr-workflow
 conda env create -f envs/alevin-fry-lr.yaml
 conda activate alevin-fry-lr
 ```
