@@ -80,8 +80,8 @@ each in its own directory. Everything is written under `results_dir/<sample>/`:
 ```
 results/<sample>/blaze/                 matched_reads.fastq.gz, whitelist.csv (the cells BLAZE called), summary.txt
 results/<sample>/align/                 transcripts.bam, transcripts.tagged.bam
-results/<sample>/rad_th0.95/            map.rad, generate_permit_list.json, map.collated.rad   (one per threshold)
-results/<sample>/quant_th0.95_p0.5/     alevin/quants_mat.mtx, quants_mat_rows.txt, quants_mat_cols.txt, quant.json,
+results/<sample>/rad_th1.0/            map.rad, generate_permit_list.json, map.collated.rad   (one per threshold)
+results/<sample>/quant_th1.0_p0.5/     alevin/quants_mat.mtx, quants_mat_rows.txt, quants_mat_cols.txt, quant.json,
                                         featureDump.txt, truncation_model.tsv                   (one per threshold and power)
 results/<sample>/logs/                  one log per step
 results/<sample>/benchmarks/            one line per step: wall time, CPU time, peak memory
@@ -98,7 +98,7 @@ Python:
 
 ```python
 import scipy.io, pandas as pd, anndata as ad
-d = "results/pbmc_ont/quant_th0.95_p0.5/alevin"
+d = "results/pbmc_ont/quant_th1.0_p0.5/alevin"
 X = scipy.io.mmread(f"{d}/quants_mat.mtx").tocsr()
 adata = ad.AnnData(X,
     obs=pd.DataFrame(index=open(f"{d}/quants_mat_rows.txt").read().split()),
