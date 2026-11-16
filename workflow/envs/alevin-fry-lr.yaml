@@ -1,0 +1,15 @@
+# The tools around alevin-fry-lr: demultiplexing (BLAZE), alignment (minimap2), BAM handling
+# (samtools, pysam) and the workflow engine. The alevin-fry binary itself is built with tool/install.sh.
+name: alevin-fry-lr
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - snakemake-minimal>=8.0
+  - minimap2>=2.28
+  - samtools>=1.20
+  - pysam>=0.22
+  - pip
+  - pip:
+      - blaze2==2.5.1

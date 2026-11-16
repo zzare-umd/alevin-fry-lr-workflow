@@ -1,0 +1,8 @@
+results/
+tool/alevin-fry/
+tool/libradicl/
+.snakemake/
+__pycache__/
+*.bam
+*.rad
+*.mmi

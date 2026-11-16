@@ -1,0 +1,42 @@
+# alevin-fry-lr workflow configuration. Copy this file, fill in the paths, and run
+#   snakemake -s workflow/Snakefile --configfile my_config.yaml --cores 32
+
+# One entry per library. platform is ONT or PacBio (it picks the minimap2 preset: map-ont or map-hifi).
+# expect_cells is BLAZE's expected number of cells (used to find the barcode whitelist of this library).
+samples:
+  pbmc_ont:
+    fastq: /path/to/pbmc_ont.fastq.gz
+    platform: ONT
+    expect_cells: 5000
+
+# 10x barcode whitelist for the chemistry (3' v3: 3M-february-2018.txt, shipped with Cell Ranger under
+# lib/python/cellranger/barcodes/, gunzipped). If BLAZE reports almost no cells, try the reverse-
+# complemented whitelist: some basecalling / library setups put the barcodes on the other strand.
+whitelist: /path/to/3M-february-2018.txt
+
+# Reference transcriptome (FASTA of transcript sequences; GENCODE transcripts.fa works). Transcript names
+# are taken as the first word of each header.
+transcriptome: /path/to/gencode.vXX.transcripts.fa
+
+# Optional transcript<TAB>gene file (no header). With it, quant reports counts per gene; without it,
+# counts per transcript (the map is then transcript -> itself, made from the FASTA).
+tx2gene: null
+
+# The alevin-fry-lr binary (built with tool/install.sh) and the output directory.
+alevin_fry: tool/alevin-fry/target/release/alevin-fry
+results_dir: results
+
+threads: 32
+
+# Alignments within this fraction of a read's best alignment score are kept as that read's candidates
+# (convert --score-threshold). 0.95 is what we use; 1.0 keeps only the best-scoring ones.
+score_threshold: 0.95
+
+# Orientation of the reads relative to the transcripts. BLAZE writes its matched reads in the
+# transcript orientation, so this is fw.
+expected_ori: fw
+
+# Quantification model (see README, "Parameters that matter"). These are the settings we run.
+quant:
+  cell_prior: 0.25          # --truncation-cell-prior: within-cell Dirichlet pseudo-count toward equal isoform shares
+  positional_power: 0.5     # --truncation-positional-power: how strongly read positions weigh in against abundances
