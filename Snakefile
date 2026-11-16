@@ -11,15 +11,30 @@ from os.path import join
 if not workflow.overwrite_configfiles:
     configfile: join(workflow.basedir, "config", "config.yaml")
 
+
+def as_list(v):
+    return v if isinstance(v, list) else [v]
+
+
 SAMPLES = config["samples"]
 RES = config["results_dir"]
+THREADS = int(config.get("threads", 16))
+SCRIPT_DIR = join(workflow.basedir, "scripts")
+PRESET = {"ONT": "map-ont", "PacBio": "map-hifi"}
+# one value or a list: every combination is run, each in its own directory
+TH = [str(x) for x in as_list(config.get("score_threshold", 0.95))]
+POWER = [str(x) for x in as_list(config["quant"]["positional_power"])]
+CELL_PRIOR = config["quant"]["cell_prior"]
+ORI = config.get("expected_ori", "fw")
 # the alevin-fry binary; when the file does not exist, rule install_alevin_fry builds it there
 AF = config["alevin_fry"]
 AF_GIT = config.get("alevin_fry_git", "https://github.com/COMBINE-lab/alevin-fry")
 AF_BRANCH = config.get("alevin_fry_branch", "long-read")
-THREADS = int(config.get("threads", 16))
-SCRIPT_DIR = join(workflow.basedir, "scripts")
-PRESET = {"ONT": "map-ont", "PacBio": "map-hifi"}
+
+
+wildcard_constraints:
+    th=r"[0-9.]+",
+    power=r"[0-9.]+",
 
 
 def platform_of(sample):
@@ -29,14 +44,19 @@ def platform_of(sample):
     return p
 
 
-# the default target: the count matrix of every library
+def whitelist_of(sample):
+    # a library's own whitelist (another chemistry) overrides the common one
+    return SAMPLES[sample].get("whitelist", config["whitelist"])
+
+
+# the default target: the count matrix of every library, threshold and power
 rule all:
     input:
-        expand(join(RES, "{sample}", "quant", "alevin", "quants_mat.mtx"), sample=SAMPLES),
+        expand(join(RES, "{sample}", "quant_th{th}_p{power}", "alevin", "quants_mat.mtx"), sample=SAMPLES, th=TH, power=POWER),
 
 
 # stage targets, to run or re-run the pipeline up to one step for every library:
-#   snakemake --configfile ... --cores 32 all_blaze
+#   snakemake --cores 32 all_blaze
 rule all_blaze:
     input:
         expand(join(RES, "{sample}", "blaze", "matched_reads.fastq.gz"), sample=SAMPLES),
@@ -49,7 +69,7 @@ rule all_align:
 
 rule all_rad:
     input:
-        expand(join(RES, "{sample}", "rad", "map.collated.rad"), sample=SAMPLES),
+        expand(join(RES, "{sample}", "rad_th{th}", "map.collated.rad"), sample=SAMPLES, th=TH),
 
 
 rule all_quant:
@@ -103,6 +123,8 @@ rule minimap2_index:
     threads: THREADS
     log:
         join(RES, "reference", "minimap2_index.{platform}.log"),
+    benchmark:
+        join(RES, "reference", "benchmarks", "minimap2_index.{platform}.tsv")
     shell:
         "minimap2 -t {threads} -x {params.preset} -d {output} {input} > {log} 2>&1"
 
@@ -112,7 +134,7 @@ rule minimap2_index:
 rule blaze:
     input:
         fastq=lambda w: SAMPLES[w.sample]["fastq"],
-        whitelist=config["whitelist"],
+        whitelist=lambda w: whitelist_of(w.sample),
     output:
         fastq=join(RES, "{sample}", "blaze", "matched_reads.fastq.gz"),
         whitelist=join(RES, "{sample}", "blaze", "whitelist.csv"),
@@ -122,6 +144,8 @@ rule blaze:
     threads: THREADS
     log:
         join(RES, "{sample}", "logs", "blaze.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "blaze.tsv")
     shell:
         """
         mkdir -p {params.prefix}
@@ -140,6 +164,8 @@ rule align:
     threads: THREADS
     log:
         join(RES, "{sample}", "logs", "minimap2.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "minimap2.tsv")
     shell:
         "minimap2 -t {threads} -a -N 100 {input.index} {input.fastq} 2> {log} "
         "| samtools view -@ {threads} -h -F 2052 -b -o {output.bam} -"
@@ -154,42 +180,48 @@ rule tag_bam:
         script=join(SCRIPT_DIR, "tagged_bam_CR_UR.py"),
     log:
         join(RES, "{sample}", "logs", "tag_bam.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "tag_bam.tsv")
     shell:
         "python {params.script} --input {input.bam} --output {output.bam} > {log} 2>&1"
 
 
+# each read keeps the alignments within the threshold's fraction of its best alignment score
 rule convert:
     input:
         bam=rules.tag_bam.output.bam,
         af=ancient(AF),
     output:
-        rad=join(RES, "{sample}", "rad", "map.rad"),
+        rad=join(RES, "{sample}", "rad_th{th}", "map.rad"),
     params:
         af=AF,
-        th=config.get("score_threshold", 0.95),
     threads: THREADS
     log:
-        join(RES, "{sample}", "logs", "convert.log"),
+        join(RES, "{sample}", "logs", "convert_th{th}.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "convert_th{th}.tsv")
     shell:
-        "{params.af} convert --threads {threads} --filter_best --score-threshold {params.th} "
+        "{params.af} convert --threads {threads} --filter_best --score-threshold {wildcards.th} "
         "--bam {input.bam} --output {output.rad} > {log} 2>&1"
 
 
 rule permit_list:
     input:
         rad=rules.convert.output.rad,
-        whitelist=config["whitelist"],
+        whitelist=lambda w: whitelist_of(w.sample),
         af=ancient(AF),
     output:
-        json=join(RES, "{sample}", "rad", "generate_permit_list.json"),
-        unmapped=join(RES, "{sample}", "rad", "unmapped_bc_count.bin"),
+        json=join(RES, "{sample}", "rad_th{th}", "generate_permit_list.json"),
+        unmapped=join(RES, "{sample}", "rad_th{th}", "unmapped_bc_count.bin"),
     params:
         af=AF,
-        raddir=join(RES, "{sample}", "rad"),
-        ori=config.get("expected_ori", "fw"),
+        raddir=join(RES, "{sample}", "rad_th{th}"),
+        ori=ORI,
     threads: THREADS
     log:
-        join(RES, "{sample}", "logs", "generate_permit_list.log"),
+        join(RES, "{sample}", "logs", "generate_permit_list_th{th}.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "generate_permit_list_th{th}.tsv")
     shell:
         """
         {params.af} generate-permit-list --threads {threads} --input {params.raddir} --expected-ori {params.ori} \
@@ -204,13 +236,15 @@ rule collate:
         rules.permit_list.output.unmapped,
         ancient(AF),
     output:
-        join(RES, "{sample}", "rad", "map.collated.rad"),
+        join(RES, "{sample}", "rad_th{th}", "map.collated.rad"),
     params:
         af=AF,
-        raddir=join(RES, "{sample}", "rad"),
+        raddir=join(RES, "{sample}", "rad_th{th}"),
     threads: THREADS
     log:
-        join(RES, "{sample}", "logs", "collate.log"),
+        join(RES, "{sample}", "logs", "collate_th{th}.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "collate_th{th}.tsv")
     shell:
         "{params.af} collate -i {params.raddir} -r {params.raddir} -t {threads} > {log} 2>&1"
 
@@ -221,16 +255,17 @@ rule quant:
         map=rules.transcript_map.output,
         af=ancient(AF),
     output:
-        mtx=join(RES, "{sample}", "quant", "alevin", "quants_mat.mtx"),
+        mtx=join(RES, "{sample}", "quant_th{th}_p{power}", "alevin", "quants_mat.mtx"),
     params:
         af=AF,
-        raddir=join(RES, "{sample}", "rad"),
-        outdir=join(RES, "{sample}", "quant"),
-        prior=config["quant"]["cell_prior"],
-        power=config["quant"]["positional_power"],
+        raddir=join(RES, "{sample}", "rad_th{th}"),
+        outdir=join(RES, "{sample}", "quant_th{th}_p{power}"),
+        prior=CELL_PRIOR,
     threads: THREADS
     log:
-        join(RES, "{sample}", "logs", "quant.log"),
+        join(RES, "{sample}", "logs", "quant_th{th}_p{power}.log"),
+    benchmark:
+        join(RES, "{sample}", "benchmarks", "quant_th{th}_p{power}.tsv")
     shell:
         """
         mkdir -p {params.outdir}
@@ -238,5 +273,5 @@ rule quant:
             --lambda-size=0.0 --tau-delta=0.0 \
             --dedup-model bf --ed-distance-model general --ed-upper-bound 2 --dedup-edges bayes --ed-far-window 10 \
             --model-truncation --truncation-interval-mode all --truncation-end-kernels absolute \
-            --truncation-cell-prior {params.prior} --truncation-positional-power {params.power} > {log} 2>&1
+            --truncation-cell-prior {params.prior} --truncation-positional-power {wildcards.power} > {log} 2>&1
         """

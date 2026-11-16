@@ -71,19 +71,22 @@ that stage for every library, for example `snakemake --cores 32 all_align` to st
 alignments. To keep several configurations, copy `config/config.yaml` and pass the copy with
 `--configfile path/to/copy.yaml`.
 
-The configuration has one entry per library (`fastq`, `platform`, `expect_cells`), the whitelist, the
-transcriptome, the optional transcript-to-gene file, the path of the binary, the output directory and
-the thread count. Everything is written under `results_dir/<sample>/`:
+The configuration has one entry per library (`fastq`, `platform`, `expect_cells`, and its own `whitelist`
+if its chemistry differs from the others), the common whitelist, the transcriptome, the optional
+transcript-to-gene file, the path of the binary, the output directory and the thread count.
+`score_threshold` and `positional_power` take one value or a list; with lists every combination runs,
+each in its own directory. Everything is written under `results_dir/<sample>/`:
 
 ```
-results/<sample>/blaze/      matched_reads.fastq.gz, whitelist.csv (the cells BLAZE called), summary.txt
-results/<sample>/align/      transcripts.bam, transcripts.tagged.bam
-results/<sample>/rad/        map.rad, generate_permit_list.json, map.collated.rad
-results/<sample>/quant/      alevin/quants_mat.mtx, quants_mat_rows.txt, quants_mat_cols.txt, quant.json,
-                             featureDump.txt, truncation_model.tsv
-results/<sample>/logs/       one log per step
-results/reference/           txp_map.tsv, transcripts.<platform>.mmi
-bin/alevin-fry               the binary, when the workflow built it
+results/<sample>/blaze/                 matched_reads.fastq.gz, whitelist.csv (the cells BLAZE called), summary.txt
+results/<sample>/align/                 transcripts.bam, transcripts.tagged.bam
+results/<sample>/rad_th0.95/            map.rad, generate_permit_list.json, map.collated.rad   (one per threshold)
+results/<sample>/quant_th0.95_p0.5/     alevin/quants_mat.mtx, quants_mat_rows.txt, quants_mat_cols.txt, quant.json,
+                                        featureDump.txt, truncation_model.tsv                   (one per threshold and power)
+results/<sample>/logs/                  one log per step
+results/<sample>/benchmarks/            one line per step: wall time, CPU time, peak memory
+results/reference/                      txp_map.tsv, transcripts.<platform>.mmi
+bin/alevin-fry                          the binary, when the workflow built it
 ```
 
 ## The output
@@ -95,7 +98,7 @@ Python:
 
 ```python
 import scipy.io, pandas as pd, anndata as ad
-d = "results/pbmc_ont/quant/alevin"
+d = "results/pbmc_ont/quant_th0.95_p0.5/alevin"
 X = scipy.io.mmread(f"{d}/quants_mat.mtx").tocsr()
 adata = ad.AnnData(X,
     obs=pd.DataFrame(index=open(f"{d}/quants_mat_rows.txt").read().split()),

@@ -4,6 +4,7 @@
 
 # One entry per library. platform is ONT or PacBio (it picks the minimap2 preset: map-ont or map-hifi).
 # expect_cells is BLAZE's expected number of cells (used to find the barcode whitelist of this library).
+# A library of another chemistry can carry its own `whitelist:` here, overriding the common one below.
 samples:
   pbmc_ont:
     fastq: /path/to/pbmc_ont.fastq.gz
@@ -34,7 +35,8 @@ results_dir: results
 threads: 32
 
 # Alignments within this fraction of a read's best alignment score are kept as that read's candidates
-# (convert --score-threshold). 0.95 is what we use; 1.0 keeps only the best-scoring ones.
+# (convert --score-threshold). 0.95 is what we use; 1.0 keeps only the best-scoring ones. A list, for
+# example [0.95, 1.0], runs every value, each in its own rad_th<value> and quant_th<value>_p<power> directory.
 score_threshold: 0.95
 
 # Orientation of the reads relative to the transcripts. BLAZE writes its matched reads in the
@@ -44,4 +46,5 @@ expected_ori: fw
 # Quantification model (see README, "Parameters that matter"). These are the settings we run.
 quant:
   cell_prior: 0.25          # --truncation-cell-prior: within-cell Dirichlet pseudo-count toward equal isoform shares
-  positional_power: 0.5     # --truncation-positional-power: how strongly read positions weigh in against abundances
+  positional_power: 0.5     # --truncation-positional-power: how strongly read positions weigh in against abundances;
+                            # a list such as [0.25, 0.5] runs every value
