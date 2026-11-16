@@ -20,10 +20,6 @@ whitelist: /path/to/3M-february-2018.txt
 # are taken as the first word of each header.
 transcriptome: /path/to/gencode.vXX.transcripts.fa
 
-# Optional transcript<TAB>gene file (no header). With it, quant reports counts per gene; without it,
-# counts per transcript (the map is then transcript -> itself, made from the FASTA).
-tx2gene: null
-
 # The alevin-fry binary. If this file does not exist, the workflow builds it there from the long-read
 # branch (cargo, cmake and a C compiler come with the conda environment; a few minutes). Point it at a
 # binary you already have to skip that.
@@ -35,9 +31,7 @@ results_dir: results
 threads: 32
 
 # Alignments within this fraction of a read's best alignment score are kept as that read's candidates
-# (convert --score-threshold). 0.95 is what we use; 1.0 keeps only the best-scoring ones. A list, for
-# example [0.95, 1.0], runs every value, each in its own rad_th<value> and quant_th<value>_p<power> directory.
-score_threshold: 0.95
+score_threshold: 1.0
 
 # Orientation of the reads relative to the transcripts. BLAZE writes its matched reads in the
 # transcript orientation, so this is fw.
