@@ -103,27 +103,4 @@ adata = ad.AnnData(X,
     obs=pd.DataFrame(index=open(f"{d}/quants_mat_rows.txt").read().split()),
     var=pd.DataFrame(index=open(f"{d}/quants_mat_cols.txt").read().split()))
 ```
-
-## Parameters that matter
-
-Defaults are the settings we run; all of them live in the config file.
-
-- `score_threshold` (`convert --score-threshold`, 0.95): a read keeps every alignment whose score is at
-  least this fraction of its best one. Those alignments are the molecule's candidate isoforms. 1.0 keeps
-  only the best-scoring alignments and is slightly stricter; both work.
-- `expected_ori` (`generate-permit-list --expected-ori fw`): BLAZE writes reads in the transcript
-  orientation, so alignments are expected forward. Leave it unless you skip BLAZE.
-- The UMI deduplication (`quant`): `--ed-distance-model general --ed-upper-bound 2` joins UMIs within an
-  edit distance of 2 (indels included, which matters for nanopore UMIs), `--dedup-model bf` resolves each
-  cell's UMI graph with a likelihood model, and `--dedup-edges bayes --ed-far-window 10` decides whether
-  two near-identical UMIs are one molecule from their distance and whether their reads lie at the same
-  place on the transcript, with the error rates estimated on each cell. Nothing to set here.
-- The isoform model (`quant --model-truncation ...`): reads of 10x 3' libraries start at the poly-A end
-  and usually stop before the 5' end, so a read's position on each candidate isoform says something about
-  which isoform it came from. The model learns, per cell, how reads are placed and uses it together with
-  the isoform abundances. Two knobs: `positional_power` (0.5) tempers how strongly positions weigh in
-  against abundances, and `cell_prior` (0.25) is a small pseudo-count toward equal isoform shares that
-  keeps a cell with two molecules from declaring an isoform absent. We do not recommend changing them
-  for a first run.
-- `threads`: every step scales; BLAZE and minimap2 take most of the time.
   
