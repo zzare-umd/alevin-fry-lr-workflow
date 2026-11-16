@@ -7,22 +7,19 @@ which also builds the long-read version of `alevin-fry` for you.
 The long-read code lives on the `long-read` branch of [COMBINE-lab/alevin-fry](https://github.com/COMBINE-lab/alevin-fry/tree/long-read).
 It is research software under active development: it works end to end on our data (10x 3' v3 libraries
 on ONT and PacBio, simulated and real), but the installation and the first three steps of the pipeline
-are not yet packaged the way the rest of `alevin-fry` is. The section [What we are streamlining](#what-we-are-streamlining)
-says what will change.
+are not yet packaged the way the rest of `alevin-fry` is.
 
 ## What the pipeline does
 
-| Step | Tool | What it does | Our ONT test: 72 M reads, 5,000 cells, 64 threads |
+| Step | Tool | What it does |
 |---|---|---|---|
-| 1 | [BLAZE](https://github.com/shimlab/BLAZE) | Finds the cell barcode and UMI in each read, keeps the reads of real cells, writes them in transcript orientation with `CB_UMI#read` names | 60 min, 1.3 GB |
-| 2 | minimap2 | Aligns the reads to the transcriptome, keeping up to 100 alignments per read | 16 min, 6.5 GB |
-| 3 | `tagged_bam_CR_UR.py` | Moves the barcode and UMI from the read name into BAM tags (`CB`/`CR`, `UB`/`UR`) | 42 min (single-threaded), 0.1 GB |
-| 4 | `alevin-fry convert` | Turns the BAM into a RAD file, keeping each read's alignments within 95% of its best alignment score | 2 min, 0.1 GB |
-| 5 | `alevin-fry generate-permit-list` | Decides which barcodes are cells (the 10x whitelist, at least 10 reads) and corrects the rest | 2 s |
-| 6 | `alevin-fry collate` | Groups the records by cell | 3 s, 1.9 GB |
-| 7 | `alevin-fry quant` | Per cell: collapses reads into molecules (UMI deduplication that tolerates indels and uses read positions), then assigns each molecule to isoforms with a positional model of 3'-anchored, truncated long reads | 20 s wall, 15 CPU-min, 5.3 GB |
-
-The result is a cells × transcripts count matrix (or cells × genes with a transcript-to-gene file).
+| 1 | [BLAZE](https://github.com/shimlab/BLAZE) | Finds the cell barcode and UMI in each read, keeps the reads of real cells, writes them in transcript orientation with `CB_UMI#read` names |
+| 2 | minimap2 | Aligns the reads to the transcriptome, keeping up to 100 alignments per read |
+| 3 | `tagged_bam_CR_UR.py` | Moves the barcode and UMI from the read name into BAM tags (`CB`/`CR`, `UB`/`UR`) |
+| 4 | `alevin-fry convert` | Turns the BAM into a RAD file, keeping each read's alignments within 95% of its best alignment score |
+| 5 | `alevin-fry generate-permit-list` | Decides which barcodes are cells (the 10x whitelist, at least 10 reads) and corrects the rest |
+| 6 | `alevin-fry collate` | Groups the records by cell |
+| 7 | `alevin-fry quant` | Per cell: collapses reads into molecules (UMI deduplication that tolerates indels and uses read positions), then assigns each molecule to isoforms with a positional model of 3'-anchored, truncated long reads |
 
 ## Requirements
 
@@ -48,8 +45,6 @@ To build it by hand instead:
 ```bash
 cargo install --locked --git https://github.com/COMBINE-lab/alevin-fry --branch long-read --root . alevin-fry
 ```
-
-The commit this guide was tested with is d63db0c.
 
 ## What you need
 
@@ -93,12 +88,6 @@ results/reference/           txp_map.tsv, transcripts.<platform>.mmi
 bin/alevin-fry               the binary, when the workflow built it
 ```
 
-## Running the steps by hand
-
-Every step is one rule in `Snakefile` with its exact command line, so the file doubles as the
-list of commands to run by hand; `snakemake --printshellcmds --dry-run` prints them with your paths
-filled in.
-
 ## The output
 
 `quants_mat.mtx` is a Matrix Market file, cells in rows (`quants_mat_rows.txt`, barcodes) and transcripts
@@ -114,15 +103,6 @@ adata = ad.AnnData(X,
     obs=pd.DataFrame(index=open(f"{d}/quants_mat_rows.txt").read().split()),
     var=pd.DataFrame(index=open(f"{d}/quants_mat_cols.txt").read().split()))
 ```
-
-Two things to know about the rows:
-
-- The matrix holds every whitelist barcode with at least 10 reads, not only real cells. Filter cells
-  afterwards, for example to the barcodes in `results/<sample>/blaze/whitelist.csv` (BLAZE's call) or by
-  a knee on total counts.
-- `truncation_model.tsv` has one row per cell with the fitted positional model (read-length laws, the
-  fractions of 3'-anchored, 5'-anchored, full-length and uniformly placed reads, and convergence flags).
-  `FitStatus` tells whether a cell had enough molecules to fit anything.
 
 ## Parameters that matter
 
@@ -146,63 +126,8 @@ Defaults are the settings we run; all of them live in the config file.
   keeps a cell with two molecules from declaring an isoform absent. We do not recommend changing them
   for a first run.
 - `threads`: every step scales; BLAZE and minimap2 take most of the time.
+  
 
-An alternative model pools isoform abundances across cells of the same type instead of fitting each cell
-alone (`quant --truncation-preset recommended --truncation-discover-groups <tx2gene>`); it is more
-accurate where many cells share one isoform usage and we are still comparing the two on real data. The
-per-cell setting above is the one we ship because it makes no assumption about which cells are alike.
-
-## Troubleshooting
-
-- **BLAZE finds almost no cells.** Check the whitelist matches the chemistry (3' v3: `3M-february-2018.txt`;
-  other kits ship other lists). With some basecalling or library setups the barcodes are on the other
-  strand: reverse-complement the whitelist and run again.
-- **Other 10x chemistries.** BLAZE has `--kit-version` and `--umi-len`; the rest of the pipeline only needs
-  the `CB_UMI#` read names and the matching whitelist. We have run 3' v3 (16-bp barcode, 12-bp UMI).
-- **`collate` complains about `unmapped_bc_count.bin`.** The workflow creates that file after the permit
-  list; if you run the steps by hand, `touch` it in the RAD directory.
-- **`convert` finds no barcodes.** It reads the `CB`/`UB` tags; the tagging step must have run on reads
-  named by BLAZE. Reads without the name pattern pass through untagged and are dropped.
-- **Building `alevin-fry` fails.** The log is next to the binary's path (`bin/alevin-fry.install.log`).
-  Rust, cmake and the compiler come from the conda environment; outside it, a Rust toolchain ≥ 1.85
-  and cmake ≥ 3.5 are needed (`CMAKE=/path/to/cmake` if cmake is not in `PATH`).
-- **Memory.** `quant` memory grows with threads (about 0.25 GB each) and with the largest cell; use
-  fewer threads if it is tight. minimap2 needs the index in memory.
-
-## What we are streamlining
-
-These are the parts of the current setup that we know are rough, and what is being done about them:
-
-- **Installation.** Building `alevin-fry` from a branch is temporary; the long-read code will be merged
-  and released so that a bioconda package suffices.
-- **Three external steps.** BLAZE, minimap2 and the tagging script are run separately today. The tagging
-  step in particular is a single-threaded Python loop (40 minutes on 72 M reads) that exists only to move
-  the barcode from the read name into a tag; `convert` will read BLAZE's names directly, and a single
-  command will drive demultiplexing and alignment.
-- **Defaults.** `quant` needs a long list of flags today. They are the settings we found best and will
-  become the defaults of a long-read mode, so that `quant -r parsimony-em --long-read` is enough.
-- **Model choice.** Two isoform models are implemented (the per-cell one above and a pooled one); we are
-  finishing the comparison on real data with cell types of different isoform usage before fixing the
-  default.
-- **Documentation.** The flags are documented in `docs/source/quant.rst` on the branch; a long-read page
-  on the `alevin-fry` documentation site will replace this README.
-
-## How it works, briefly
-
-`alevin-fry` processes RAD files, which hold each read's barcode, UMI and candidate alignments; the
-long-read records (in `libradicl` 0.13) carry the alignment intervals the positional model needs and no
-read names, which keeps the files small. `quant` works one cell at a time. It first builds the UMI graph of the
-cell and resolves it into molecules (He et al. 2022 describe the parsimony resolution; the long-read
-branch adds a general edit distance and the position-aware edge model). It then fits a mixture model of
-read placement (after the one in [oarfish](https://github.com/COMBINE-lab/oarfish)): each read is 3'-anchored,
-5'-anchored, full-length or uniformly placed, with learned read-length laws and end kernels. The
-assignment of a molecule to an isoform is the product of its alignment score, the positional likelihood
-of its read on that isoform (raised to `positional_power`) and the isoform's abundance in the cell,
-estimated by EM with the `cell_prior` pseudo-count. Counts are the sums of these posteriors.
-
-If you use this, please cite the `alevin-fry` paper (He et al., *Nature Methods* 2022) and `oarfish`
-(Zare Jousheghani and Patro, 2024) for the positional model; a preprint describing the long-read method
-is in preparation.
 
 ## Questions
 
