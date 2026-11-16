@@ -1,6 +1,7 @@
 results/
-tool/alevin-fry/
-tool/libradicl/
+tool/bin/
+tool/.crates.toml
+tool/.crates2.json
 .snakemake/
 __pycache__/
 *.bam

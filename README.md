@@ -2,7 +2,7 @@
 
 Isoform-level quantification of 10x single-cell long-read libraries (Oxford Nanopore or PacBio) with
 `alevin-fry`. This repository is the current test setup: a user guide, the Snakemake workflow we run, a
-one-library shell runner, and a script that builds the long-read version of `alevin-fry` from its branch.
+one-library shell runner, and a script that installs the long-read version of `alevin-fry` from its branch.
 
 The long-read code lives on the `long-read` branch of [COMBINE-lab/alevin-fry](https://github.com/COMBINE-lab/alevin-fry/tree/long-read).
 It is research software under active development: it works end to end on our data (10x 3' v3 libraries
@@ -40,14 +40,19 @@ The result is a cells × transcripts count matrix (or cells × genes with a tran
 git clone <this repository> alevin-fry-lr && cd alevin-fry-lr
 conda env create -f workflow/envs/alevin-fry-lr.yaml
 conda activate alevin-fry-lr
-tool/install.sh            # -> tool/alevin-fry/target/release/alevin-fry
+tool/install.sh            # -> tool/bin/alevin-fry
 ```
 
-`tool/install.sh` clones the `long-read` branch of `alevin-fry` and the `libradicl` library it depends on
-side by side, applies a small patch to `libradicl` (`tool/libradicl-long-read.patch`, 120 lines: the RAD
-record format of the branch), and runs `cargo build --release`. It pins both repositories to the commits
-we tested; `AF_REF` and `LR_REF` in the script change that. The build takes a few minutes. If `cmake` is
-not in your `PATH`, point the `CMAKE` environment variable at it.
+`tool/install.sh` is `cargo install` of the `long-read` branch of `alevin-fry`, pinned to the commit we
+tested (`AF_REF` in the script; `AF_REF=long-read tool/install.sh` builds the head of the branch). The
+equivalent by hand, anywhere:
+
+```bash
+cargo install --locked --git https://github.com/COMBINE-lab/alevin-fry --branch long-read --root tool alevin-fry
+```
+
+The build takes a few minutes and fetches the `libradicl` release the branch depends on by itself. If
+`cmake` is not in your `PATH`, point the `CMAKE` environment variable at it.
 
 ## What you need
 
@@ -63,12 +68,14 @@ not in your `PATH`, point the `CMAKE` environment variable at it.
 
 ## Running the workflow
 
-Copy `config/config.yaml`, fill in the paths, and run:
+Copy `workflow/config/config.yaml`, fill in the paths, and run from the repository directory:
 
 ```bash
-snakemake -s workflow/Snakefile --configfile my_config.yaml --cores 32 --dry-run   # check the plan
-snakemake -s workflow/Snakefile --configfile my_config.yaml --cores 32
+snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32 --dry-run   # the plan
+snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32
 ```
+
+Without `--configfile`, the template `workflow/config/config.yaml` next to the Snakefile is read.
 
 The configuration has one entry per library (`fastq`, `platform`, `expect_cells`), the whitelist, the
 transcriptome, the optional transcript-to-gene file, the path of the binary, the output directory and
@@ -158,7 +165,7 @@ per-cell setting above is the one we ship because it makes no assumption about w
 - **`convert` finds no barcodes.** It reads the `CB`/`UB` tags; the tagging step must have run on reads
   named by BLAZE. Reads without the name pattern pass through untagged and are dropped.
 - **Build fails.** `cmake` missing or too old: install it and set `CMAKE=/path/to/cmake`. Rust too old:
-  `rustup update`. The patch does not apply: you changed `LR_REF`; use the pinned commit.
+  `rustup update`.
 - **Memory.** `quant` memory grows with threads (about 0.25 GB each) and with the largest cell; use
   fewer threads if it is tight. minimap2 needs the index in memory.
 
@@ -166,9 +173,8 @@ per-cell setting above is the one we ship because it makes no assumption about w
 
 These are the parts of the current setup that we know are rough, and what is being done about them:
 
-- **Installation.** Building from a branch with a patched dependency is temporary. The `libradicl` changes
-  will move to a branch of that repository and then upstream, so that `cargo install` and eventually a
-  bioconda package suffice.
+- **Installation.** Building from a branch is temporary; the long-read code will be merged and released
+  so that a bioconda package suffices.
 - **Three external steps.** BLAZE, minimap2 and the tagging script are run separately today. The tagging
   step in particular is a single-threaded Python loop (40 minutes on 72 M reads) that exists only to move
   the barcode from the read name into a tag; `convert` will read BLAZE's names directly, and a single
@@ -183,9 +189,9 @@ These are the parts of the current setup that we know are rough, and what is bei
 
 ## How it works, briefly
 
-`alevin-fry` processes RAD files, which hold each read's barcode, UMI and candidate alignments; this
-branch adds the alignment intervals that the positional model needs and drops read names from the
-records to keep the files small. `quant` works one cell at a time. It first builds the UMI graph of the
+`alevin-fry` processes RAD files, which hold each read's barcode, UMI and candidate alignments; the
+long-read records (in `libradicl` 0.13) carry the alignment intervals the positional model needs and no
+read names, which keeps the files small. `quant` works one cell at a time. It first builds the UMI graph of the
 cell and resolves it into molecules (He et al. 2022 describe the parsimony resolution; the long-read
 branch adds a general edit distance and the position-aware edge model). It then fits a mixture model of
 read placement (after the one in [oarfish](https://github.com/COMBINE-lab/oarfish)): each read is 3'-anchored,

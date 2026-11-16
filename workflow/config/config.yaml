@@ -1,5 +1,5 @@
 # alevin-fry-lr workflow configuration. Copy this file, fill in the paths, and run
-#   snakemake -s workflow/Snakefile --configfile my_config.yaml --cores 32
+#   snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32
 
 # One entry per library. platform is ONT or PacBio (it picks the minimap2 preset: map-ont or map-hifi).
 # expect_cells is BLAZE's expected number of cells (used to find the barcode whitelist of this library).
@@ -22,8 +22,8 @@ transcriptome: /path/to/gencode.vXX.transcripts.fa
 # counts per transcript (the map is then transcript -> itself, made from the FASTA).
 tx2gene: null
 
-# The alevin-fry-lr binary (built with tool/install.sh) and the output directory.
-alevin_fry: tool/alevin-fry/target/release/alevin-fry
+# The alevin-fry-lr binary (tool/install.sh puts it here) and the output directory.
+alevin_fry: tool/bin/alevin-fry
 results_dir: results
 
 threads: 32

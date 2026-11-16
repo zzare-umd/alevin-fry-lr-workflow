@@ -8,7 +8,7 @@
 # alevin-fry-lr binary (tool/install.sh). Output: out_dir/quant/alevin/quants_mat.mtx (+ rows/cols).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-PLATFORM=ONT; CELLS=5000; THREADS=16; T2G=""; AF="$HERE/alevin-fry/target/release/alevin-fry"; TH=0.95
+PLATFORM=ONT; CELLS=5000; THREADS=16; T2G=""; AF="$HERE/bin/alevin-fry"; TH=0.95
 PRIOR=0.25; POWER=0.5; ORI=fw
 while getopts "f:w:x:o:p:c:t:m:b:s:" opt; do
   case $opt in
