@@ -65,17 +65,18 @@ The commit this guide was tested with is d63db0c.
 
 ## Running the workflow
 
-Copy `config/config.yaml`, fill in the paths, and run from the repository directory:
+Fill in the paths in `config/config.yaml` and run from the repository directory:
 
 ```bash
-snakemake --configfile config/my_config.yaml --cores 32 --dry-run   # the plan
-snakemake --configfile config/my_config.yaml --cores 32
+snakemake --cores 32 --dry-run   # shows the plan
+snakemake --cores 32
 ```
 
-Without `--configfile`, the template `config/config.yaml` next to the Snakefile is read. The
-default target `all` is the count matrix of every library; `all_blaze`, `all_align`, `all_rad` and
-`all_quant` run the pipeline up to that stage for every library, for example
-`snakemake --configfile ... --cores 32 all_align` to stop after the alignments.
+`--cores` is the total number of CPU cores Snakemake may use. The default target `all` is the count
+matrix of every library; `all_blaze`, `all_align`, `all_rad` and `all_quant` run the pipeline up to
+that stage for every library, for example `snakemake --cores 32 all_align` to stop after the
+alignments. To keep several configurations, copy `config/config.yaml` and pass the copy with
+`--configfile path/to/copy.yaml`.
 
 The configuration has one entry per library (`fastq`, `platform`, `expect_cells`), the whitelist, the
 transcriptome, the optional transcript-to-gene file, the path of the binary, the output directory and

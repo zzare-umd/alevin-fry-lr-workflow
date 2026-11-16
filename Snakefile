@@ -1,13 +1,13 @@
 # alevin-fry-lr: 10x 3' long reads (ONT or PacBio) -> per-cell transcript (or gene) counts.
 #
-#   snakemake --configfile config/my_config.yaml --cores 32
+#   snakemake --cores 32          (from the repository directory, after filling in config/config.yaml)
 #
 # Steps per library: BLAZE (cell barcodes and UMIs) -> minimap2 against the transcriptome -> CB/UMI into
 # BAM tags -> alevin-fry convert / generate-permit-list / collate / quant. See README.md.
 from os.path import join
 
-# the template next to this file is read only when no --configfile is given (a given file replaces
-# it, it is not merged)
+# config/config.yaml next to this file is read unless another file is given with --configfile (the
+# given file replaces it, it is not merged)
 if not workflow.overwrite_configfiles:
     configfile: join(workflow.basedir, "config", "config.yaml")
 
