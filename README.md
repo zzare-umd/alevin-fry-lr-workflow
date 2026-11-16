@@ -127,9 +127,3 @@ Defaults are the settings we run; all of them live in the config file.
   for a first run.
 - `threads`: every step scales; BLAZE and minimap2 take most of the time.
   
-
-
-## Questions
-
-Open an issue in this repository, or reply to the thread that pointed you here. Feedback on real data is
-exactly what we are after at this stage: what failed, what looked odd, how long it took.
