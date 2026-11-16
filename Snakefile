@@ -107,7 +107,7 @@ rule transcript_map:
         script=join(SCRIPT_DIR, "make_t2t_map.py"),
     shell:
         """
-        python {params.script} -i {input.fa} -o {output}; fi
+        python {params.script} -i {input.fa} -o {output}
         """
 
 
