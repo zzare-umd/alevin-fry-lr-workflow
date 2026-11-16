@@ -1,5 +1,5 @@
 # alevin-fry-lr workflow configuration. Copy this file, fill in the paths, and run
-#   snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32
+#   snakemake --configfile config/my_config.yaml --cores 32
 
 # One entry per library. platform is ONT or PacBio (it picks the minimap2 preset: map-ont or map-hifi).
 # expect_cells is BLAZE's expected number of cells (used to find the barcode whitelist of this library).

@@ -28,7 +28,7 @@ The result is a cells × transcripts count matrix (or cells × genes with a tran
 
 - Linux, x86-64. Memory is set by minimap2 on your transcriptome (about 7 GB for a human
   transcriptome) and by `quant`, which uses about 0.25 GB per thread plus the matrix.
-- One conda environment, `workflow/envs/alevin-fry-lr.yaml`: [BLAZE](https://github.com/shimlab/BLAZE) 2.5,
+- One conda environment, `envs/alevin-fry-lr.yaml`: [BLAZE](https://github.com/shimlab/BLAZE) 2.5,
   minimap2 ≥ 2.28, samtools, Python with pysam, Snakemake ≥ 8, and the Rust toolchain, `cmake` and C
   compiler that build `alevin-fry` (cmake builds the compression library it links).
 
@@ -36,7 +36,7 @@ The result is a cells × transcripts count matrix (or cells × genes with a tran
 
 ```bash
 git clone <this repository> alevin-fry-lr && cd alevin-fry-lr
-conda env create -f workflow/envs/alevin-fry-lr.yaml
+conda env create -f envs/alevin-fry-lr.yaml
 conda activate alevin-fry-lr
 ```
 
@@ -65,17 +65,17 @@ The commit this guide was tested with is d63db0c.
 
 ## Running the workflow
 
-Copy `workflow/config/config.yaml`, fill in the paths, and run from the repository directory:
+Copy `config/config.yaml`, fill in the paths, and run from the repository directory:
 
 ```bash
-snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32 --dry-run   # the plan
-snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32
+snakemake --configfile config/my_config.yaml --cores 32 --dry-run   # the plan
+snakemake --configfile config/my_config.yaml --cores 32
 ```
 
-Without `--configfile`, the template `workflow/config/config.yaml` next to the Snakefile is read. The
+Without `--configfile`, the template `config/config.yaml` next to the Snakefile is read. The
 default target `all` is the count matrix of every library; `all_blaze`, `all_align`, `all_rad` and
 `all_quant` run the pipeline up to that stage for every library, for example
-`snakemake -s workflow/Snakefile --configfile ... --cores 32 all_align` to stop after the alignments.
+`snakemake --configfile ... --cores 32 all_align` to stop after the alignments.
 
 The configuration has one entry per library (`fastq`, `platform`, `expect_cells`), the whitelist, the
 transcriptome, the optional transcript-to-gene file, the path of the binary, the output directory and
@@ -94,7 +94,7 @@ bin/alevin-fry               the binary, when the workflow built it
 
 ## Running the steps by hand
 
-Every step is one rule in `workflow/Snakefile` with its exact command line, so the file doubles as the
+Every step is one rule in `Snakefile` with its exact command line, so the file doubles as the
 list of commands to run by hand; `snakemake --printshellcmds --dry-run` prints them with your paths
 filled in.
 

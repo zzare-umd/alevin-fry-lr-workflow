@@ -1,6 +1,6 @@
 # alevin-fry-lr: 10x 3' long reads (ONT or PacBio) -> per-cell transcript (or gene) counts.
 #
-#   snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32
+#   snakemake --configfile config/my_config.yaml --cores 32
 #
 # Steps per library: BLAZE (cell barcodes and UMIs) -> minimap2 against the transcriptome -> CB/UMI into
 # BAM tags -> alevin-fry convert / generate-permit-list / collate / quant. See README.md.
@@ -36,7 +36,7 @@ rule all:
 
 
 # stage targets, to run or re-run the pipeline up to one step for every library:
-#   snakemake -s workflow/Snakefile --configfile ... --cores 32 all_blaze
+#   snakemake --configfile ... --cores 32 all_blaze
 rule all_blaze:
     input:
         expand(join(RES, "{sample}", "blaze", "matched_reads.fastq.gz"), sample=SAMPLES),
