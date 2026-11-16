@@ -26,9 +26,32 @@ def platform_of(sample):
     return p
 
 
+# the default target: the count matrix of every library
 rule all:
     input:
         expand(join(RES, "{sample}", "quant", "alevin", "quants_mat.mtx"), sample=SAMPLES),
+
+
+# stage targets, to run or re-run the pipeline up to one step for every library:
+#   snakemake -s workflow/Snakefile --configfile ... --cores 32 all_blaze
+rule all_blaze:
+    input:
+        expand(join(RES, "{sample}", "blaze", "matched_reads.fastq.gz"), sample=SAMPLES),
+
+
+rule all_align:
+    input:
+        expand(join(RES, "{sample}", "align", "transcripts.tagged.bam"), sample=SAMPLES),
+
+
+rule all_rad:
+    input:
+        expand(join(RES, "{sample}", "rad", "map.collated.rad"), sample=SAMPLES),
+
+
+rule all_quant:
+    input:
+        rules.all.input,
 
 
 # transcript -> gene when a tx2gene file is configured, else transcript -> transcript (per-transcript counts)

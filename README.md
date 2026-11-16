@@ -2,7 +2,7 @@
 
 Isoform-level quantification of 10x single-cell long-read libraries (Oxford Nanopore or PacBio) with
 `alevin-fry`. This repository is the current test setup: a user guide, the Snakemake workflow we run, a
-one-library shell runner, and a script that installs the long-read version of `alevin-fry` from its branch.
+and a one-line installer for the long-read version of `alevin-fry`.
 
 The long-read code lives on the `long-read` branch of [COMBINE-lab/alevin-fry](https://github.com/COMBINE-lab/alevin-fry/tree/long-read).
 It is research software under active development: it works end to end on our data (10x 3' v3 libraries
@@ -43,16 +43,16 @@ conda activate alevin-fry-lr
 tool/install.sh            # -> tool/bin/alevin-fry
 ```
 
-`tool/install.sh` is `cargo install` of the `long-read` branch of `alevin-fry`, pinned to the commit we
-tested (`AF_REF` in the script; `AF_REF=long-read tool/install.sh` builds the head of the branch). The
-equivalent by hand, anywhere:
+`tool/install.sh` is one command, `cargo install` of the `long-read` branch of `alevin-fry` into
+`tool/bin`; run it by hand anywhere with another `--root` if you prefer:
 
 ```bash
 cargo install --locked --git https://github.com/COMBINE-lab/alevin-fry --branch long-read --root tool alevin-fry
 ```
 
 The build takes a few minutes and fetches the `libradicl` release the branch depends on by itself. If
-`cmake` is not in your `PATH`, point the `CMAKE` environment variable at it.
+`cmake` is not in your `PATH`, point the `CMAKE` environment variable at it. The commit this guide was
+tested with is d63db0c.
 
 ## What you need
 
@@ -75,7 +75,10 @@ snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --co
 snakemake -s workflow/Snakefile --configfile workflow/config/my_config.yaml --cores 32
 ```
 
-Without `--configfile`, the template `workflow/config/config.yaml` next to the Snakefile is read.
+Without `--configfile`, the template `workflow/config/config.yaml` next to the Snakefile is read. The
+default target `all` is the count matrix of every library; `all_blaze`, `all_align`, `all_rad` and
+`all_quant` run the pipeline up to that stage for every library, for example
+`snakemake -s workflow/Snakefile --configfile ... --cores 32 all_align` to stop after the alignments.
 
 The configuration has one entry per library (`fastq`, `platform`, `expect_cells`), the whitelist, the
 transcriptome, the optional transcript-to-gene file, the path of the binary, the output directory and
@@ -91,14 +94,11 @@ results/<sample>/logs/       one log per step
 results/reference/           txp_map.tsv, transcripts.<platform>.mmi
 ```
 
-## Running one library without Snakemake
+## Running the steps by hand
 
-`tool/run_sample.sh` runs the same eight steps with the same settings:
-
-```bash
-tool/run_sample.sh -f reads.fastq.gz -w 3M-february-2018.txt -x transcripts.fa -o out_pbmc \
-    -p ONT -c 5000 -t 32            # -m tx2gene.tsv for gene counts, -b <binary> if not under tool/
-```
+Every step is one rule in `workflow/Snakefile` with its exact command line, so the file doubles as the
+list of commands to run by hand; `snakemake --printshellcmds --dry-run` prints them with your paths
+filled in.
 
 ## The output
 
@@ -127,7 +127,7 @@ Two things to know about the rows:
 
 ## Parameters that matter
 
-Defaults are the settings we run; all of them live in the config file or at the top of `run_sample.sh`.
+Defaults are the settings we run; all of them live in the config file.
 
 - `score_threshold` (`convert --score-threshold`, 0.95): a read keeps every alignment whose score is at
   least this fraction of its best one. Those alignments are the molecule's candidate isoforms. 1.0 keeps
