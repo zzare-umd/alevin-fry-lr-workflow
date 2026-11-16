@@ -97,19 +97,17 @@ rule install_alevin_fry:
         """
 
 
-# transcript -> gene when a tx2gene file is configured, else transcript -> transcript (per-transcript counts)
+# transcript -> transcript (per-transcript counts)
 rule transcript_map:
     input:
         fa=config["transcriptome"],
     output:
         join(RES, "reference", "txp_map.tsv"),
     params:
-        t2g=config.get("tx2gene") or "",
         script=join(SCRIPT_DIR, "make_t2t_map.py"),
     shell:
         """
-        if [ -n "{params.t2g}" ]; then cut -f1,2 "{params.t2g}" > {output}
-        else python {params.script} -i {input.fa} -o {output}; fi
+        python {params.script} -i {input.fa} -o {output}; fi
         """
 
 
