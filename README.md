@@ -19,7 +19,7 @@ are not yet packaged the way the rest of `alevin-fry` is.
 | 4 | `alevin-fry convert` | Turns the BAM into a RAD file, keeping each read's alignments within 95% of its best alignment score |
 | 5 | `alevin-fry generate-permit-list` | Decides which barcodes are cells (the 10x whitelist, at least 10 reads) and corrects the rest |
 | 6 | `alevin-fry collate` | Groups the records by cell |
-| 7 | `alevin-fry quant` | Per cell: collapses reads into molecules (UMI deduplication that tolerates indels and uses read positions), then assigns each molecule to isoforms with a positional model of 3'-anchored, truncated long reads |
+| 7 | `alevin-fry quant` | Per cell: collapses reads into molecules (UMI deduplication that tolerates indels), then assigns each molecule to isoforms with a positional model of 3'-anchored, truncated long reads |
 
 ## Requirements
 

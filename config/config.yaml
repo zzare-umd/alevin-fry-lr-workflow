@@ -45,10 +45,6 @@ expected_ori: fw
 
 # Quantification model (see README, "Parameters that matter"). These are the settings we run.
 quant:
-  # UMI deduplication: how two UMIs within edit distance 2 are judged to be one molecule.
-  #   bayes: a model calibrated on each cell from the UMI distance and whether the reads lie at the same place
-  #          on the transcript (what we run); rule: edit distance alone, no positional evidence
-  dedup_edges: bayes
   cell_prior: 0.25          # --truncation-cell-prior: within-cell Dirichlet pseudo-count toward equal isoform shares
   positional_power: 0.5     # --truncation-positional-power: how strongly read positions weigh in against abundances;
                             # a list such as [0.25, 0.5] runs every value

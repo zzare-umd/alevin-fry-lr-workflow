@@ -25,7 +25,6 @@ PRESET = {"ONT": "map-ont", "PacBio": "map-hifi"}
 TH = [str(x) for x in as_list(config.get("score_threshold", 0.95))]
 POWER = [str(x) for x in as_list(config["quant"]["positional_power"])]
 CELL_PRIOR = config["quant"]["cell_prior"]
-DEDUP_EDGES = config["quant"].get("dedup_edges", "bayes")   # bayes (calibrated per cell) or rule (edit distance only)
 ORI = config.get("expected_ori", "fw")
 # the alevin-fry binary; when the file does not exist, rule install_alevin_fry builds it there
 AF = config["alevin_fry"]
@@ -262,7 +261,6 @@ rule quant:
         raddir=join(RES, "{sample}", "rad_th{th}"),
         outdir=join(RES, "{sample}", "quant_th{th}_p{power}"),
         prior=CELL_PRIOR,
-        edges=DEDUP_EDGES,
     threads: THREADS
     log:
         join(RES, "{sample}", "logs", "quant_th{th}_p{power}.log"),
@@ -273,7 +271,7 @@ rule quant:
         mkdir -p {params.outdir}
         {params.af} quant -i {params.raddir} -m {input.map} -t {threads} -o {params.outdir} -r parsimony-em \
             --lambda-size=0.0 --tau-delta=0.0 \
-            --dedup-model bf --ed-distance-model general --ed-upper-bound 2 --dedup-edges {params.edges} --ed-far-window 10 \
+            --ed-distance-model general --ed-upper-bound 2 \
             --model-truncation --truncation-interval-mode all --truncation-end-kernels absolute \
             --truncation-cell-prior {params.prior} --truncation-positional-power {wildcards.power} > {log} 2>&1
         """
