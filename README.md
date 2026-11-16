@@ -53,9 +53,7 @@ cargo install --locked --git https://github.com/COMBINE-lab/alevin-fry --branch 
 2. The 10x barcode whitelist of your chemistry. For 3' v3 it is `3M-february-2018.txt`, shipped with
    Cell Ranger under `lib/python/cellranger/barcodes/` (gunzip it). BLAZE and `generate-permit-list`
    both use it.
-3. A transcriptome FASTA (for example GENCODE `transcripts.fa`). Transcript names are the first word of
-   each FASTA header. Optionally a `transcript<TAB>gene` file if you want counts per gene instead of
-   per transcript.
+3. A transcriptome FASTA (for example GENCODE `transcripts.fa`).
 4. The expected number of cells, roughly (BLAZE uses it to find the cell barcodes).
 
 ## Running the workflow
