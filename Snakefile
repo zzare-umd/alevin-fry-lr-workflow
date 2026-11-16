@@ -165,8 +165,10 @@ rule align:
     benchmark:
         join(RES, "{sample}", "benchmarks", "minimap2.tsv")
     shell:
-        "minimap2 -t {threads} -a -N 100 {input.index} {input.fastq} 2> {log} "
-        "| samtools view -@ {threads} -h -F 2052 -b -o {output.bam} -"
+        """
+        minimap2 -t {threads} -a -N 100 {input.index} {input.fastq} 2> {log} \
+            | samtools view -@ {threads} -h -F 2052 -b -o {output.bam} -
+        """
 
 
 rule tag_bam:
@@ -199,8 +201,10 @@ rule convert:
     benchmark:
         join(RES, "{sample}", "benchmarks", "convert_th{th}.tsv")
     shell:
-        "{params.af} convert --threads {threads} --filter_best --score-threshold {wildcards.th} "
-        "--bam {input.bam} --output {output.rad} > {log} 2>&1"
+        """
+        {params.af} convert --threads {threads} --filter_best --score-threshold {wildcards.th} \
+            --bam {input.bam} --output {output.rad} > {log} 2>&1
+        """
 
 
 rule permit_list:
