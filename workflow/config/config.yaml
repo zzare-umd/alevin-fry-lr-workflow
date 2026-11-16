@@ -22,8 +22,12 @@ transcriptome: /path/to/gencode.vXX.transcripts.fa
 # counts per transcript (the map is then transcript -> itself, made from the FASTA).
 tx2gene: null
 
-# The alevin-fry-lr binary (tool/install.sh puts it here) and the output directory.
-alevin_fry: tool/bin/alevin-fry
+# The alevin-fry binary. If this file does not exist, the workflow builds it there from the long-read
+# branch (cargo, cmake and a C compiler come with the conda environment; a few minutes). Point it at a
+# binary you already have to skip that.
+alevin_fry: bin/alevin-fry
+# alevin_fry_git: https://github.com/COMBINE-lab/alevin-fry     # where to build it from, and which branch
+# alevin_fry_branch: long-read
 results_dir: results
 
 threads: 32

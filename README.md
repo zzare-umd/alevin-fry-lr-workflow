@@ -1,8 +1,8 @@
 # alevin-fry-lr
 
 Isoform-level quantification of 10x single-cell long-read libraries (Oxford Nanopore or PacBio) with
-`alevin-fry`. This repository is the current test setup: a user guide, the Snakemake workflow we run, a
-and a one-line installer for the long-read version of `alevin-fry`.
+`alevin-fry`. This repository is the current test setup: a user guide and the Snakemake workflow we run,
+which also builds the long-read version of `alevin-fry` for you.
 
 The long-read code lives on the `long-read` branch of [COMBINE-lab/alevin-fry](https://github.com/COMBINE-lab/alevin-fry/tree/long-read).
 It is research software under active development: it works end to end on our data (10x 3' v3 libraries
@@ -28,11 +28,9 @@ The result is a cells × transcripts count matrix (or cells × genes with a tran
 
 - Linux, x86-64. Memory is set by minimap2 on your transcriptome (about 7 GB for a human
   transcriptome) and by `quant`, which uses about 0.25 GB per thread plus the matrix.
-- The tools around `alevin-fry`: [BLAZE](https://github.com/shimlab/BLAZE) 2.5, minimap2 ≥ 2.28,
-  samtools, Python with pysam, Snakemake ≥ 8 if you use the workflow. `workflow/envs/alevin-fry-lr.yaml`
-  installs all of them into one conda environment.
-- To build `alevin-fry`: a Rust toolchain ≥ 1.85 ([rustup](https://rustup.rs)), `cmake` ≥ 3.5 and a C
-  compiler (cmake builds the compression library that `alevin-fry` links).
+- One conda environment, `workflow/envs/alevin-fry-lr.yaml`: [BLAZE](https://github.com/shimlab/BLAZE) 2.5,
+  minimap2 ≥ 2.28, samtools, Python with pysam, Snakemake ≥ 8, and the Rust toolchain, `cmake` and C
+  compiler that build `alevin-fry` (cmake builds the compression library it links).
 
 ## Installation
 
@@ -40,19 +38,18 @@ The result is a cells × transcripts count matrix (or cells × genes with a tran
 git clone <this repository> alevin-fry-lr && cd alevin-fry-lr
 conda env create -f workflow/envs/alevin-fry-lr.yaml
 conda activate alevin-fry-lr
-tool/install.sh            # -> tool/bin/alevin-fry
 ```
 
-`tool/install.sh` is one command, `cargo install` of the `long-read` branch of `alevin-fry` into
-`tool/bin`; run it by hand anywhere with another `--root` if you prefer:
+That is all. The first `snakemake` run builds `alevin-fry` from its `long-read` branch into `bin/alevin-fry`
+(the `alevin_fry` path in the config), a few minutes once; it fetches the `libradicl` release the branch
+depends on by itself. If you already have the binary, set `alevin_fry` to its path and nothing is built.
+To build it by hand instead:
 
 ```bash
-cargo install --locked --git https://github.com/COMBINE-lab/alevin-fry --branch long-read --root tool alevin-fry
+cargo install --locked --git https://github.com/COMBINE-lab/alevin-fry --branch long-read --root . alevin-fry
 ```
 
-The build takes a few minutes and fetches the `libradicl` release the branch depends on by itself. If
-`cmake` is not in your `PATH`, point the `CMAKE` environment variable at it. The commit this guide was
-tested with is d63db0c.
+The commit this guide was tested with is d63db0c.
 
 ## What you need
 
@@ -92,6 +89,7 @@ results/<sample>/quant/      alevin/quants_mat.mtx, quants_mat_rows.txt, quants_
                              featureDump.txt, truncation_model.tsv
 results/<sample>/logs/       one log per step
 results/reference/           txp_map.tsv, transcripts.<platform>.mmi
+bin/alevin-fry               the binary, when the workflow built it
 ```
 
 ## Running the steps by hand
@@ -164,8 +162,9 @@ per-cell setting above is the one we ship because it makes no assumption about w
   list; if you run the steps by hand, `touch` it in the RAD directory.
 - **`convert` finds no barcodes.** It reads the `CB`/`UB` tags; the tagging step must have run on reads
   named by BLAZE. Reads without the name pattern pass through untagged and are dropped.
-- **Build fails.** `cmake` missing or too old: install it and set `CMAKE=/path/to/cmake`. Rust too old:
-  `rustup update`.
+- **Building `alevin-fry` fails.** The log is next to the binary's path (`bin/alevin-fry.install.log`).
+  Rust, cmake and the compiler come from the conda environment; outside it, a Rust toolchain ≥ 1.85
+  and cmake ≥ 3.5 are needed (`CMAKE=/path/to/cmake` if cmake is not in `PATH`).
 - **Memory.** `quant` memory grows with threads (about 0.25 GB each) and with the largest cell; use
   fewer threads if it is tight. minimap2 needs the index in memory.
 
@@ -173,8 +172,8 @@ per-cell setting above is the one we ship because it makes no assumption about w
 
 These are the parts of the current setup that we know are rough, and what is being done about them:
 
-- **Installation.** Building from a branch is temporary; the long-read code will be merged and released
-  so that a bioconda package suffices.
+- **Installation.** Building `alevin-fry` from a branch is temporary; the long-read code will be merged
+  and released so that a bioconda package suffices.
 - **Three external steps.** BLAZE, minimap2 and the tagging script are run separately today. The tagging
   step in particular is a single-threaded Python loop (40 minutes on 72 M reads) that exists only to move
   the barcode from the read name into a tag; `convert` will read BLAZE's names directly, and a single

@@ -13,7 +13,10 @@ if not workflow.overwrite_configfiles:
 
 SAMPLES = config["samples"]
 RES = config["results_dir"]
+# the alevin-fry binary; when the file does not exist, rule install_alevin_fry builds it there
 AF = config["alevin_fry"]
+AF_GIT = config.get("alevin_fry_git", "https://github.com/COMBINE-lab/alevin-fry")
+AF_BRANCH = config.get("alevin_fry_branch", "long-read")
 THREADS = int(config.get("threads", 16))
 SCRIPT_DIR = join(workflow.basedir, "scripts")
 PRESET = {"ONT": "map-ont", "PacBio": "map-hifi"}
@@ -52,6 +55,26 @@ rule all_rad:
 rule all_quant:
     input:
         rules.all.input,
+
+
+# the long-read alevin-fry, built from its branch with cargo (rust, cmake and a C compiler are in the
+# conda environment); runs only when the configured binary does not exist
+rule install_alevin_fry:
+    output:
+        AF,
+    params:
+        git=AF_GIT,
+        branch=AF_BRANCH,
+    log:
+        AF + ".install.log",
+    shell:
+        """
+        tmp=$(mktemp -d)
+        cargo install --locked --git {params.git} --branch {params.branch} --root $tmp alevin-fry > {log} 2>&1
+        install -D $tmp/bin/alevin-fry {output}
+        rm -rf $tmp
+        {output} --version >> {log}
+        """
 
 
 # transcript -> gene when a tx2gene file is configured, else transcript -> transcript (per-transcript counts)
@@ -138,6 +161,7 @@ rule tag_bam:
 rule convert:
     input:
         bam=rules.tag_bam.output.bam,
+        af=ancient(AF),
     output:
         rad=join(RES, "{sample}", "rad", "map.rad"),
     params:
@@ -155,6 +179,7 @@ rule permit_list:
     input:
         rad=rules.convert.output.rad,
         whitelist=config["whitelist"],
+        af=ancient(AF),
     output:
         json=join(RES, "{sample}", "rad", "generate_permit_list.json"),
         unmapped=join(RES, "{sample}", "rad", "unmapped_bc_count.bin"),
@@ -177,6 +202,7 @@ rule collate:
     input:
         rules.permit_list.output.json,
         rules.permit_list.output.unmapped,
+        ancient(AF),
     output:
         join(RES, "{sample}", "rad", "map.collated.rad"),
     params:
@@ -193,6 +219,7 @@ rule quant:
     input:
         collated=rules.collate.output,
         map=rules.transcript_map.output,
+        af=ancient(AF),
     output:
         mtx=join(RES, "{sample}", "quant", "alevin", "quants_mat.mtx"),
     params:

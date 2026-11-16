@@ -1,7 +1,5 @@
 results/
-tool/bin/
-tool/.crates.toml
-tool/.crates2.json
+bin/
 .snakemake/
 __pycache__/
 *.bam
